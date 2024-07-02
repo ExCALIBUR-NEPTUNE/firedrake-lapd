@@ -45,6 +45,6 @@ $$
 n \dot{v_{\parallel}} + v n_0 + n \nabla{v_{\parallel}} \cdot (v_{\parallel}+v_D) = -T \nabla_{\parallel} n.
 $$
 
-(If unsure about the vector calculus see the Wiki page {\it vector calculus identities}, that's what I do.)
+(If unsure about the vector calculus see the Wiki page ${\it vector calculus identities}$, that's what I do.)
 
 DG version - TBC!  Need to make the advection work in the $\dot{v_{\parallel}}$ equation.
