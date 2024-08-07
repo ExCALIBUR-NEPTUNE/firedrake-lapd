@@ -63,3 +63,10 @@ Implements the equations above, plus an attempt at streamline-upwind correction 
 Work in progress
 
 <!-- Script: [(LAPD-like_simplified_DG.py)](./scripts/LAPD-like_simplified_DG.py) -->
+
+## System taken from paper by Rogers and Ricci
+
+This section is based on the model in *Low-frequency turbulence in a linear magentized plasma*, B.N. Rogers and P. Ricci, PRL **104**, 225002, 2010.
+
+### Equations
+
