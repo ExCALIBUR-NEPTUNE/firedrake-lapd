@@ -1,0 +1,14 @@
+mesh:
+  type: cuboid
+  nx: 64
+  ny: 64
+  nz: 4
+model:
+  S0n_fac: 0.03
+  S0T_fac: 0.03
+physical:
+  Lz: 18.0
+  n_0: 2.0e+18
+  omega_ci: 9.6e+5
+  R: 0.5
+  T_e0: 6
