@@ -11,6 +11,8 @@ model:
   Ls_boost: 2.0
 numerics:
   discretisation: DG
+  fe_order:
+    n: 3
 physical:
   n_0: 2.0e+18
   nu: 0.03
