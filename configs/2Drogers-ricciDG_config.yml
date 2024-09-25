@@ -3,6 +3,7 @@ mesh:
   nx: 64
   ny: 64
 model:
+  evolve_density: False
   start_from_steady_state: False
   n_init: 2.0e+14
   S0n_fac: 0.03
