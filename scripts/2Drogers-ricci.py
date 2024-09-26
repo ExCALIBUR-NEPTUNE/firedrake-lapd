@@ -178,7 +178,9 @@ def rogers_ricci2D():
         grad(phi_avg)[0] * grad(phi_test)[0] + grad(phi_avg)[1] * grad(phi_test)[1]
     ) * dx + w_avg * phi_test * dx
 
-    F = n_terms + w_terms + T_terms + phi_terms
+    F = w_terms + T_terms + phi_terms
+    if cfg["model"]["evolve_density"]:
+        F += n_terms
     F_for_jacobian = F + phi_avg * phi_test * dx
     Jp = derivative(F_for_jacobian, state1)
 

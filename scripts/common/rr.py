@@ -203,6 +203,8 @@ def _process_params(cfg):
     set_default_param(model_cfg, "n_init", 1e18)
     set_default_param(model_cfg, "start_from_steady_state", True)
     set_default_param(model_cfg, "T_init", 6.0)
+    if is2D:
+        set_default_param(model_cfg, "evolve_density", True)
 
     # Set numerics defaults
     num_cfg = cfg["numerics"]
