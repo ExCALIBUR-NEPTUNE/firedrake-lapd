@@ -70,37 +70,6 @@ Derived values
 
 ### Other implementation details
 
-#### Boundary conditions
-Bohm BCs for velocities at the end walls; zero potential on the transverse boundaries. All other BCs are (homogeneous) Neumann.
-That is
-
-| Field    | Transverse BCs | Low-z Parallel BC ($z=-L_z/2$)  | High-z parallel BC ($z=L_z/2$) |
-| -------- | -------------- | ------------------------------- | ------------------------------ |
-| n        | Neumann        | Neumann                         | Neumann                        |
-| T        | Neumann        | Neumann                         | Neumann                        |
-| $\omega$ | Neumann        | Neumann                         | Neumann                        |
-| $\phi$   | 0              | Neumann                         | Neumann                        |
-| $u_i$    | Neumann        | $-c_s$                          | $c_s$                          |
-| $u_e$    | Neumann        | $-c_s exp(\Lambda - e\phi/T_e)$ | $c_s exp(\Lambda - e\phi/T_e)$ |
-
-#### Domain and mesh
-
-The mesh is a cuboid with the origin at the centre and dimensions
-
-|                    | Calculated as                  | SI    | Normalised |
-| ------------------ | ------------------------------ | ----- | ---------- |
-| Parallel size      | $L_z$                          | 18 m  | 36         |
-| Perpendicular size | $100\sqrt{T_0/m_i}/\Omega{ci}$ | 1.2 m | 100        |
-
-By default, there are 64x64x16 tetrahedral (cuboidal), giving element sizes of
-
-|                    | SI       | Normalised |
-| ------------------ | -------- | ---------- |
-| Parallel size      | 1.125 m  | 2.25       |
-| Perpendicular size | 1.875 cm | 1.56       |
-
-(Default res is substantially lower than that used in the finite difference model, which has 1024x1024x64 elements.)
-
 #### Normalisation
 
 Normalisations follow those in Rogers & Ricci, that is:
@@ -141,6 +110,37 @@ $$
 
 where $R$, $\rho_{s0}$, $r_s$ and $Ls$ are in SI units and $\tau$ and $\nu$ are dimensionless constants, as listed in the tables above.
 This system can be be obtained by applying the normalisation factors to equations 1-6, then simplifying; see [here](./details/rogers-ricci-3d-normalised.md) for details. Note that the prime notation used in the derivations is dropped in the equations above for the sake of readability.
+
+#### Boundary conditions
+Bohm BCs for velocities at the end walls; zero potential on the transverse boundaries. All other BCs are (homogeneous) Neumann.
+That is
+
+| Field    | Transverse BCs | Low-z Parallel BC ($z=-L_z/2$)  | High-z parallel BC ($z=L_z/2$) |
+| -------- | -------------- | ------------------------------- | ------------------------------ |
+| n        | Neumann        | Neumann                         | Neumann                        |
+| T        | Neumann        | Neumann                         | Neumann                        |
+| $\omega$ | Neumann        | Neumann                         | Neumann                        |
+| $\phi$   | 0              | Neumann                         | Neumann                        |
+| $u_i$    | Neumann        | $-c_s$                          | $c_s$                          |
+| $u_e$    | Neumann        | $-c_s exp(\Lambda - e\phi/T_e)$ | $c_s exp(\Lambda - e\phi/T_e)$ |
+
+#### Domain and mesh
+
+The mesh is a cuboid with the origin at the centre and dimensions
+
+|                    | Calculated as                  | SI    | Normalised |
+| ------------------ | ------------------------------ | ----- | ---------- |
+| Parallel size      | $L_z$                          | 18 m  | 36         |
+| Perpendicular size | $100\sqrt{T_0/m_i}/\Omega{ci}$ | 1.2 m | 100        |
+
+By default, there are 64x64x16 tetrahedral (cuboidal), giving element sizes of
+
+|                    | SI       | Normalised |
+| ------------------ | -------- | ---------- |
+| Parallel size      | 1.125 m  | 2.25       |
+| Perpendicular size | 1.875 cm | 1.56       |
+
+(Default res is substantially lower than that used in the finite difference model, which has 1024x1024x64 elements.)
 
 #### Simulation time
 
