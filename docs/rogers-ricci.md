@@ -124,6 +124,8 @@ That is
 | $u_i$    | Neumann        | $-c_s$                          | $c_s$                          |
 | $u_e$    | Neumann        | $-c_s exp(\Lambda - e\phi/T_e)$ | $c_s exp(\Lambda - e\phi/T_e)$ |
 
+Note that $c_s=1$ and $e=1$ in normalised units.
+
 #### Domain and mesh
 
 The mesh is a cuboid with the origin at the centre and dimensions
@@ -146,7 +148,7 @@ By default, there are 64x64x16 tetrahedral (cuboidal), giving element sizes of
 
 Rogers and Ricci don't specify the duration of their simulations, except to say that it's sufficient for the system to reach equilibrium.
 In a paper by Shi et al. [1], which uses the Gyrokinetic code Gkeyll to model a virtually identical system, they suggest that the simulation should run for "several ion crossing times".
-The ion crossing time for our simulations is $\frac{L_z}{2} / \sqrt{T_0/m_i} = 750 \mu{\rm s}$. We set a total duration of 5000 $\mu{\rm s}$
+The ion crossing time for our simulations is $\frac{L_z}{2} / \sqrt{T_0/m_i} = 750 \mu{\rm s}$. We set a total duration of 5000 $\mu{\rm s}$, or 120 in normalised units.
 
 <!-- ## Example output
 
