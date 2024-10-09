@@ -45,17 +45,17 @@ where $r = \sqrt{x^2 + y^2}$
 
 ## Parameter Choices
 
-| Parameter      | Value               | Comment                                                                                                         |
-| -------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- |
-| $T_0$          | 6 eV                |                                                                                                                 |
-| $L_z$          | 18 m                |                                                                                                                 |
-| $n_0$          | 2e18 m<sup>-3</sup> |                                                                                                                 |
-| $\nu$          | 0.03                |                                                                                                                 |
-| $m_i$          | 6.67e-27 kg         | Inferred from the value of $c_{s0}$ quoted in the paper. Value is $\sim 4 m_p$, consistent with a Helium plasma |
-| $\tau=m_i/m_e$ | 400                 | Ion/electron mass ratio                                                                                         |
-| $\Omega_{ci}$  | $9.6e5$             |                                                                                                                 |
-| $\Lambda$      | 3                   | Couloumb Logarithm                                                                                              |
-| R              | 0.5 m               | Approx radius of the plasma column?                                                                             |
+| Parameter      | Value               | Comment                                                                                                                               |
+| -------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| $T_0$          | 6 eV                |                                                                                                                                       |
+| $L_z$          | 18 m                |                                                                                                                                       |
+| $n_0$          | 2e18 m<sup>-3</sup> |                                                                                                                                       |
+| $\nu$          | 0.03                |                                                                                                                                       |
+| $m_i$          | 6.67e-27 kg         | Inferred from the value of $c_{s0}$ quoted in the paper. Value is $\sim 4 m_p$, consistent with a Helium plasma                       |
+| $\tau=m_i/m_e$ | 400                 | Ion/electron mass ratio                                                                                                               |
+| $\Omega_{ci}$  | $9.6e5$             |                                                                                                                                       |
+| $\Lambda$      | 3                   | Couloumb Logarithm                                                                                                                    |
+| R              | 0.5 m               | Approx radius of the plasma column; perpendicular domain size adds a buffer around this to make everything less sensitive to the BCs. |
 
 Derived values
 | Parameter          | Calculated as                  | Value                               | Comment                                           |
@@ -69,28 +69,6 @@ Derived values
 | $\sigma_\parallel$ | $e^2 n_0 R / (\nu m_i c_{s0})$ | 10676.0                             |                                                   |
 
 ### Other implementation details
-
-#### Boundary conditions
-Bohm BCs for velocities at the end walls ($z = \pm L_z/2$): $u_i= \pm c_s$, $u_e=\pm c_s exp(\Lambda - e\phi/T_e)$. All other BCs are homogeneous Neumann.
-
-
-#### Domain and mesh
-
-The mesh is a cuboid with the origin at the centre and dimensions
-
-|                    | Determined by params        | SI    | Normalised |
-| ------------------ | --------------------------- | ----- | ---------- |
-| Parallel size      | $L_z$                       | 18 m  | 36         |
-| Perpendicular size | $\sqrt{T_0/m_i}/\Omega{ci}$ | 1.2 m | 100        |
-
-By default, there are 64x64x16 tetrahedral (cuboidal), giving element sizes of
-
-|                    |          | Normalised |
-| ------------------ | -------- | ---------- |
-| Parallel size      | 1.125 m  | 2.25       |
-| Perpendicular size | 1.875 cm | 1.56       |
-
-(Default res is substantially lower than that used in the finite difference model, which has 1024x1024x64 elements.)
 
 #### Normalisation
 
@@ -129,15 +107,48 @@ $$
 S_n = S_T = 0.03\left\\{1-\tanh[(\rho_{s0}r-r_s)/L_s]\right\\}
 \end{equation}
 $$
-<!-- 
-where $\rho_{s0}$, $r_s$ and $Ls$ have the (SI) values listed in the tables above. -->
+
+where $R$, $\rho_{s0}$, $r_s$ and $Ls$ are in SI units and $\tau$ and $\nu$ are dimensionless constants, as listed in the tables above.
 This system can be be obtained by applying the normalisation factors to equations 1-6, then simplifying; see [here](./details/rogers-ricci-3d-normalised.md) for details. Note that the prime notation used in the derivations is dropped in the equations above for the sake of readability.
+
+#### Boundary conditions
+Bohm BCs for velocities at the end walls; zero potential on the transverse boundaries. All other BCs are (homogeneous) Neumann.
+That is
+
+| Field    | Transverse BCs | Low-z Parallel BC ($z=-L_z/2$)  | High-z parallel BC ($z=L_z/2$) |
+| -------- | -------------- | ------------------------------- | ------------------------------ |
+| n        | Neumann        | Neumann                         | Neumann                        |
+| T        | Neumann        | Neumann                         | Neumann                        |
+| $\omega$ | Neumann        | Neumann                         | Neumann                        |
+| $\phi$   | 0              | Neumann                         | Neumann                        |
+| $u_i$    | Neumann        | $-c_s$                          | $c_s$                          |
+| $u_e$    | Neumann        | $-c_s exp(\Lambda - e\phi/T_e)$ | $c_s exp(\Lambda - e\phi/T_e)$ |
+
+Note that $c_s=1$ and $e=1$ in normalised units.
+
+#### Domain and mesh
+
+The mesh is a cuboid with the origin at the centre and dimensions
+
+|                    | Calculated as                  | SI    | Normalised |
+| ------------------ | ------------------------------ | ----- | ---------- |
+| Parallel size      | $L_z$                          | 18 m  | 36         |
+| Perpendicular size | $100\sqrt{T_0/m_i}/\Omega{ci}$ | 1.2 m | 100        |
+
+By default, there are 64x64x16 tetrahedral (cuboidal), giving element sizes of
+
+|                    | SI       | Normalised |
+| ------------------ | -------- | ---------- |
+| Parallel size      | 1.125 m  | 2.25       |
+| Perpendicular size | 1.875 cm | 1.56       |
+
+(Default res is substantially lower than that used in the finite difference model, which has 1024x1024x64 elements.)
 
 #### Simulation time
 
 Rogers and Ricci don't specify the duration of their simulations, except to say that it's sufficient for the system to reach equilibrium.
 In a paper by Shi et al. [1], which uses the Gyrokinetic code Gkeyll to model a virtually identical system, they suggest that the simulation should run for "several ion crossing times".
-The ion crossing time for our simulations is $\frac{L_z}{2} / \sqrt{T_0/m_i} = 750 \mu{\rm s}$. We set a total duration of 5000 $\mu{\rm s}$
+The ion crossing time for our simulations is $\frac{L_z}{2} / \sqrt{T_0/m_i} = 750 \mu{\rm s}$. We set a total duration of 5000 $\mu{\rm s}$, or 120 in normalised units.
 
 <!-- ## Example output
 
