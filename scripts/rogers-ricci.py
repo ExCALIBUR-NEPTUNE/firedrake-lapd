@@ -282,17 +282,18 @@ def rogers_ricci():
         2 * norm_cfg["c_s0"] * z / mesh_cfg["Lz"]
     )
 
+    coulomb_log = cfg["physical"]["Lambda"]
     if cfg["model"]["exp_ics"]:
         r = sqrt(x * x + y * y)
         scale = 80 * cfg["normalised"]["Ls"]
         T_init = 1e-6 * exp(-(r * r) / scale)
-        phi_init = 3 * T_init
+        phi_init = coulomb_log * T_init
         n_init = T_init
-        w_init = 3 * 4 * T_init * (scale - r * r) / scale / scale / 20
+        w_init = coulomb_log * 4 * T_init * (scale - r * r) / scale / scale / 20
     else:
         n_init = norm_cfg["n_init"]
         T_init = norm_cfg["T_init"]
-        phi_init = 3 * T_init
+        phi_init = coulomb_log * T_init
         w_init = 0
 
     state0.sub(subspace_indices["n"]).interpolate(n_init)
