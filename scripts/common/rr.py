@@ -242,8 +242,6 @@ def _process_params(cfg):
 
     # Set phys defaults
     phys_cfg = cfg["physical"]
-    #  N.B. R is plasma column radius, *not* the transverse size of the domain!
-    set_default_param(phys_cfg, "Lambda", 3.0)
     set_default_param(phys_cfg, "Lz", 18.0)
     set_default_param(phys_cfg, "m_i", 4 * constants["m_p"])
     # Unless defaults are overridden, use mass-boosted electrons as per paper; m_e = m_i/400 = m_p/100
@@ -254,6 +252,7 @@ def _process_params(cfg):
     set_default_param(phys_cfg, "n_0", 2e18)
     set_default_param(phys_cfg, "nu", 0.03)
     set_default_param(phys_cfg, "omega_ci", 9.6e5)
+    #  N.B. R is plasma column radius, *not* the transverse size of the domain!
     set_default_param(phys_cfg, "R", 0.5)
     set_default_param(phys_cfg, "T_e0", 6.0)
 
@@ -263,6 +262,12 @@ def _process_params(cfg):
     phys_cfg["rho_s0"] = phys_cfg["c_s0"] / phys_cfg["omega_ci"]
     phys_cfg["c_s0_over_R"] = phys_cfg["c_s0"] / phys_cfg["R"] / phys_cfg["Lz"]
     phys_cfg["L"] = 100 * phys_cfg["rho_s0"]
+    # The paper states Lambda~3 and electron-ion mass ratio=400. These values are inconsistent with the expression below.
+    # If the mass ratio is the normal one (1836) instead, lambda is 2.84.
+    # or maybe they forgot the factor of 2pi? Excluding it does give a value very close to 3 for a mass ratio of 400.
+    phys_cfg["Lambda"] = math.log(
+        math.sqrt(model_cfg["elec_ion_mass_ratio"] / 2 / math.pi)
+    )
     if mesh_type in ["circle", "rectangle"]:
         phys_cfg["sigma"] = 1.5 * phys_cfg["R"] / phys_cfg["Lz"]
     else:
