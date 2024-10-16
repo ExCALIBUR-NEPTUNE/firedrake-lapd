@@ -115,7 +115,13 @@ def gen_phi_bcs(phi_space, cfg):
         trans_bdy_lbls = [1, 2, 3, 4]
     elif cfg["mesh"]["type"] == "cylinder":
         trans_bdy_lbls = "on_boundary"
-    return DirichletBC(phi_space, 0.0, trans_bdy_lbls)
+
+    phi_bc = Function(phi_space, name="phi_BC")
+    phi_bc.interpolate(0.0)
+    outfile = VTKFile(os.path.join(cfg["root_dir"], "phi_bc.pvd"))
+    outfile.write(phi_bc)
+
+    return DirichletBC(phi_space, phi_bc, trans_bdy_lbls)
 
 
 def rogers_ricci():
