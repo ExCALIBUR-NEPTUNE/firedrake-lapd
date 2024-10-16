@@ -110,18 +110,28 @@ def gen_bohm_bcs(ui_space, ue_space, phi, T, cfg):
     return [*ui_bcs, *ue_bcs]
 
 
-def gen_phi_bcs(phi_space, cfg):
+def gen_phi_bcs(phi_space, phi, dt, cfg):
     if cfg["mesh"]["type"] == "cuboid":
-        trans_bdy_lbls = [1, 2, 3, 4]
-    elif cfg["mesh"]["type"] == "cylinder":
-        trans_bdy_lbls = "on_boundary"
+        delta_x = cfg["mesh"]["dx"] / cfg["numerics"]["fe_order"]["phi"]
+        # Currently forcing dy=dx...
+        delta_y = delta_x
+    else:
+        raise RuntimeError("phi BCs only set up for cuboid domain")
+    f_relax = cfg["time"]["phi_t_relax"] / dt
+    x_bdy_lbls = [1, 2]
+    y_bdy_lbls = [3, 4]
 
-    phi_bc = Function(phi_space, name="phi_BC")
-    phi_bc.interpolate(0.0)
+    x_phi_bc = Function(phi_space, name="x_phi_BC")
+    x_phi_bc.interpolate(phi - f_relax * grad(phi)[0] * delta_x)
+    y_phi_bc = Function(phi_space, name="y_phi_BC")
+    y_phi_bc.interpolate(phi - f_relax * grad(phi)[1] * delta_y)
     outfile = VTKFile(os.path.join(cfg["root_dir"], "phi_bc.pvd"))
-    outfile.write(phi_bc)
-
-    return DirichletBC(phi_space, phi_bc, trans_bdy_lbls)
+    outfile.write(x_phi_bc, y_phi_bc)
+    #
+    return [
+        DirichletBC(phi_space, x_phi_bc, x_bdy_lbls),
+        DirichletBC(phi_space, y_phi_bc, y_bdy_lbls),
+    ]
 
 
 def rogers_ricci():
@@ -329,7 +339,7 @@ def rogers_ricci():
         Th,
         cfg,
     )
-    bcs.append(gen_phi_bcs(combined_space.sub(subspace_indices["phi"]), cfg))
+    bcs.extend(gen_phi_bcs(combined_space.sub(subspace_indices["phi"]), phih, dt, cfg))
 
     nl_solver = setup_nl_solver(F, state1, Jp, bcs, cfg)
 

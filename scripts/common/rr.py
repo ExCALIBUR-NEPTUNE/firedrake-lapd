@@ -84,7 +84,7 @@ def _normalise(cfg):
 
     # Time norm
     time = cfg["time"]
-    for key in ["t_start", "t_end"]:
+    for key in ["t_start", "t_end", "phi_t_relax"]:
         time[key] = time[key] * norm["time"]
 
     # Store some other normalised quantities for use in the ICs and BCs
@@ -313,6 +313,8 @@ def _process_params(cfg):
     # By default run between t=0 and t=12*R/c_s0
     set_default_param(time_cfg, "t_start", 0.0)
     set_default_param(time_cfg, "t_end", 12 * phys_cfg["R"] / phys_cfg["c_s0"])
+    # phi BC relaxation time defaults to 100 microseconds, following Hermes-3.
+    set_default_param(time_cfg, "phi_t_relax", 100 * 1e-6)
 
     # # Check quantities in cgs match paper (not quite...)
     # print(f"c_s0 = {100*phys_cfg['c_s0']:.1E} cm/s")
