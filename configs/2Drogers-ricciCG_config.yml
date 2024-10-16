@@ -23,3 +23,4 @@ time:
   info_freq: 25
   output_freq: 250
   t_end: 5000.0e-6
+  phi_t_relax: 1.0e-4

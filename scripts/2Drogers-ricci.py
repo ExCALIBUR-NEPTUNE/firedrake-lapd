@@ -1,7 +1,9 @@
 from firedrake import (
     Constant,
+    DirichletBC,
     dx,
     exp,
+    grad,
     Function,
     FunctionSpace,
     PETSc,
@@ -35,6 +37,36 @@ def exp_T_term(T, phi, cfg, eps=1e-2):
     return exp(Lambda - e * phi / sqrt(T * T + eps * eps))
 
 
+def gen_phi_bcs(phi_space, phi, dt, cfg):
+    t_relax = cfg["time"].get("phi_t_relax")
+
+    x_bdy_lbls = [1, 2]
+    y_bdy_lbls = [3, 4]
+    if t_relax is None:
+        return [
+            DirichletBC(phi_space, 0.0, x_bdy_lbls),
+            DirichletBC(phi_space, 0.0, y_bdy_lbls),
+        ]
+    else:
+        delta_x = cfg["mesh"]["dx"] / cfg["numerics"]["fe_order"]["phi"]
+        # Currently forcing dy=dx...
+        delta_y = delta_x
+
+        f_relax = t_relax / dt
+
+        x_phi_bc = Function(phi_space, name="x_phi_BC")
+        x_phi_bc.interpolate(phi - f_relax * grad(phi)[0] * delta_x)
+        y_phi_bc = Function(phi_space, name="y_phi_BC")
+        y_phi_bc.interpolate(phi - f_relax * grad(phi)[1] * delta_y)
+        outfile = VTKFile(os.path.join(cfg["root_dir"], "phi_bc.pvd"))
+        outfile.write(x_phi_bc, y_phi_bc)
+
+        return [
+            DirichletBC(phi_space, x_phi_bc, x_bdy_lbls),
+            DirichletBC(phi_space, y_phi_bc, y_bdy_lbls),
+        ]
+
+
 def rogers_ricci2D():
     start = time.time()
 
@@ -43,6 +75,11 @@ def rogers_ricci2D():
     # Generate mesh
     mesh = set_up_mesh(cfg)
     x, y = SpatialCoordinate(mesh)
+
+    time_cfg = cfg["time"]
+    t = Constant(time_cfg["t_start"])
+    t_end = time_cfg["t_end"]
+    dt = Constant(time_cfg["t_end"] / time_cfg["num_steps"])
 
     # Function spaces
     DG_or_CG = cfg["numerics"]["discretisation"]
@@ -72,7 +109,8 @@ def rogers_ricci2D():
     n_src = rr_src_term(n_space, x, y, "n", cfg)
     T_src = rr_src_term(T_space, x, y, "T", cfg)
 
-    phi_solver = phi_solve_setup(phi_space, phi, w, cfg)
+    phi_bcs = gen_phi_bcs(phi_space, phi, dt, cfg)
+    phi_solver = phi_solve_setup(phi_space, phi, w, cfg, bcs=phi_bcs)
 
     # Assemble variational problem
     n_test, w_test, T_test = TestFunctions(combined_space)
@@ -135,11 +173,6 @@ def rogers_ricci2D():
         T_terms += rr_SU_term(T, T_test, phi, h_SU, cfg)
 
     F = n_terms + w_terms + T_terms
-
-    time_cfg = cfg["time"]
-    t = Constant(time_cfg["t_start"])
-    t_end = time_cfg["t_end"]
-    dt = Constant(time_cfg["t_end"] / time_cfg["num_steps"])
 
     # Set ICs
     if cfg["model"]["start_from_steady_state"]:
