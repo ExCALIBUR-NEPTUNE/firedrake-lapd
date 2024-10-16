@@ -110,12 +110,12 @@ def gen_bohm_bcs(ui_space, ue_space, phi, T, cfg):
     return [*ui_bcs, *ue_bcs]
 
 
-def gen_phi_bcs(phi, cfg):
+def gen_phi_bcs(phi_space, cfg):
     if cfg["mesh"]["type"] == "cuboid":
         trans_bdy_lbls = [1, 2, 3, 4]
     elif cfg["mesh"]["type"] == "cylinder":
         trans_bdy_lbls = "on_boundary"
-    return DirichletBC(phi, 0.0, trans_bdy_lbls)
+    return DirichletBC(phi_space, 0.0, trans_bdy_lbls)
 
 
 def rogers_ricci():
