@@ -43,6 +43,21 @@ def get_phi_bc_ufl(phi, phi_target, t, cfg):
     return weight * phi + (1 - weight) * phi_target
 
 
+def update_phi_bc_funcs(lowx, highx, lowy, highy, phi, t, cfg):
+    delta_x = cfg["mesh"]["dx"]  # / cfg["numerics"]["fe_order"]["phi"]
+    # Currently forcing dy=dx...
+    delta_y = delta_x
+
+    low_x_target = phi + grad(phi)[0] * delta_x
+    high_x_target = phi - grad(phi)[0] * delta_x
+    low_y_target = phi + grad(phi)[1] * delta_y
+    high_y_target = phi - grad(phi)[1] * delta_y
+    lowx.interpolate(get_phi_bc_ufl(phi, low_x_target, t, cfg))
+    highx.interpolate(get_phi_bc_ufl(phi, high_x_target, t, cfg))
+    lowy.interpolate(get_phi_bc_ufl(phi, low_y_target, t, cfg))
+    highy.interpolate(get_phi_bc_ufl(phi, high_y_target, t, cfg))
+
+
 def gen_phi_bcs(phi_space, phi, t, cfg):
     lbls = dict(low_x=1, high_x=2, low_y=3, high_y=4)
     t_relax = cfg["time"].get("phi_t_relax")
@@ -50,24 +65,11 @@ def gen_phi_bcs(phi_space, phi, t, cfg):
         transverse_bdy_lbls = list(lbls.values())
         return [DirichletBC(phi_space, 0.0, transverse_bdy_lbls)]
     else:
-        delta_x = cfg["mesh"]["dx"]  # / cfg["numerics"]["fe_order"]["phi"]
-        # Currently forcing dy=dx...
-        delta_y = delta_x
-
-        low_x_target = phi + grad(phi)[0] * delta_x
-        high_x_target = phi - grad(phi)[0] * delta_x
-        low_y_target = phi + grad(phi)[1] * delta_y
-        high_y_target = phi - grad(phi)[1] * delta_y
-
         low_x_bc = Function(phi_space, name="low_x")
-        low_x_bc.interpolate(get_phi_bc_ufl(phi, low_x_target, t, cfg))
         high_x_bc = Function(phi_space, name="high_x")
-        high_x_bc.interpolate(get_phi_bc_ufl(phi, high_x_target, t, cfg))
         low_y_bc = Function(phi_space, name="low_y")
-        low_y_bc.interpolate(get_phi_bc_ufl(phi, low_y_target, t, cfg))
         high_y_bc = Function(phi_space, name="high_y")
-        high_y_bc.interpolate(get_phi_bc_ufl(phi, high_y_target, t, cfg))
-
+        update_phi_bc_funcs(low_x_bc, high_x_bc, low_y_bc, high_y_bc, phi, t, cfg)
         funcs = [low_x_bc, high_x_bc, low_y_bc, high_y_bc]
         bcs = [
             DirichletBC(phi_space, low_x_bc, lbls["low_x"]),
@@ -120,7 +122,9 @@ def rogers_ricci2D():
     n_src = rr_src_term(n_space, x, y, "n", cfg)
     T_src = rr_src_term(T_space, x, y, "T", cfg)
 
-    phi_bc_funcs, phi_bcs = gen_phi_bcs(phi_space, phi, dt, cfg)
+    phi_for_bcs = Function(phi_space, name="phi_for_BCs")
+    phi_for_bcs.assign(phi)
+    phi_bc_funcs, phi_bcs = gen_phi_bcs(phi_space, phi_for_bcs, t, cfg)
     phi_solver = phi_solve_setup(phi_space, phi, w, cfg, bcs=phi_bcs)
 
     # Assemble variational problem
@@ -213,6 +217,8 @@ def rogers_ricci2D():
         if (float(t) + float(dt)) > t_end:
             dt.assign(t_end - float(t))
             PETSc.Sys.Print(f"  Last dt = {dt}")
+        phi_for_bcs.assign(phi)
+        update_phi_bc_funcs(*phi_bc_funcs, phi_for_bcs, t, cfg)
         phi_solver.solve()
 
         # Write fields on output steps
