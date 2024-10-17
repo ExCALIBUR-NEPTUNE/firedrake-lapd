@@ -202,6 +202,9 @@ def rogers_ricci2D():
     # Set up output
     outfile = VTKFile(os.path.join(cfg["root_dir"], cfg["output_base"] + ".pvd"))
 
+    # phi BCs output
+    phi_bcs_outfile = VTKFile(os.path.join(cfg["root_dir"], "phi_bc.pvd"))
+
     PETSc.Sys.Print("\nTimestep loop:")
     step = 0
 
@@ -220,6 +223,7 @@ def rogers_ricci2D():
                 time_evo_funcs.sub(subspace_indices["T"]),
                 phi,
             )
+            phi_bcs_outfile.write(*phi_bc_funcs)
 
         stepper.advance()
         t.assign(float(t) + float(dt))
