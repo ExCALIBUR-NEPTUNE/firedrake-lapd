@@ -37,34 +37,45 @@ def exp_T_term(T, phi, cfg, eps=1e-2):
     return exp(Lambda - e * phi / sqrt(T * T + eps * eps))
 
 
-def gen_phi_bcs(phi_space, phi, dt, cfg):
+def get_phi_bc_ufl(phi, phi_target, t, cfg):
     t_relax = cfg["time"].get("phi_t_relax")
+    weight = exp(-(float(t) % t_relax) / t_relax)
+    return weight * phi + (1 - weight) * phi_target
 
-    x_bdy_lbls = [1, 2]
-    y_bdy_lbls = [3, 4]
+
+def gen_phi_bcs(phi_space, phi, t, cfg):
+    lbls = dict(low_x=1, high_x=2, low_y=3, high_y=4)
+    t_relax = cfg["time"].get("phi_t_relax")
     if t_relax is None:
-        return [
-            DirichletBC(phi_space, 0.0, x_bdy_lbls),
-            DirichletBC(phi_space, 0.0, y_bdy_lbls),
-        ]
+        transverse_bdy_lbls = list(lbls.values())
+        return [DirichletBC(phi_space, 0.0, transverse_bdy_lbls)]
     else:
-        delta_x = cfg["mesh"]["dx"] / cfg["numerics"]["fe_order"]["phi"]
+        delta_x = cfg["mesh"]["dx"]  # / cfg["numerics"]["fe_order"]["phi"]
         # Currently forcing dy=dx...
         delta_y = delta_x
 
-        f_relax = t_relax / dt
+        low_x_target = phi + grad(phi)[0] * delta_x
+        high_x_target = phi - grad(phi)[0] * delta_x
+        low_y_target = phi + grad(phi)[1] * delta_y
+        high_y_target = phi - grad(phi)[1] * delta_y
 
-        x_phi_bc = Function(phi_space, name="x_phi_BC")
-        x_phi_bc.interpolate(phi - f_relax * grad(phi)[0] * delta_x)
-        y_phi_bc = Function(phi_space, name="y_phi_BC")
-        y_phi_bc.interpolate(phi - f_relax * grad(phi)[1] * delta_y)
-        outfile = VTKFile(os.path.join(cfg["root_dir"], "phi_bc.pvd"))
-        outfile.write(x_phi_bc, y_phi_bc)
+        low_x_bc = Function(phi_space, name="low_x")
+        low_x_bc.interpolate(get_phi_bc_ufl(phi, low_x_target, t, cfg))
+        high_x_bc = Function(phi_space, name="high_x")
+        high_x_bc.interpolate(get_phi_bc_ufl(phi, high_x_target, t, cfg))
+        low_y_bc = Function(phi_space, name="low_y")
+        low_y_bc.interpolate(get_phi_bc_ufl(phi, low_y_target, t, cfg))
+        high_y_bc = Function(phi_space, name="high_y")
+        high_y_bc.interpolate(get_phi_bc_ufl(phi, high_y_target, t, cfg))
 
-        return [
-            DirichletBC(phi_space, x_phi_bc, x_bdy_lbls),
-            DirichletBC(phi_space, y_phi_bc, y_bdy_lbls),
+        funcs = [low_x_bc, high_x_bc, low_y_bc, high_y_bc]
+        bcs = [
+            DirichletBC(phi_space, low_x_bc, lbls["low_x"]),
+            DirichletBC(phi_space, high_x_bc, lbls["high_x"]),
+            DirichletBC(phi_space, low_y_bc, lbls["low_y"]),
+            DirichletBC(phi_space, high_y_bc, lbls["high_y"]),
         ]
+        return funcs, bcs
 
 
 def rogers_ricci2D():
@@ -109,7 +120,7 @@ def rogers_ricci2D():
     n_src = rr_src_term(n_space, x, y, "n", cfg)
     T_src = rr_src_term(T_space, x, y, "T", cfg)
 
-    phi_bcs = gen_phi_bcs(phi_space, phi, dt, cfg)
+    phi_bc_funcs, phi_bcs = gen_phi_bcs(phi_space, phi, dt, cfg)
     phi_solver = phi_solve_setup(phi_space, phi, w, cfg, bcs=phi_bcs)
 
     # Assemble variational problem
