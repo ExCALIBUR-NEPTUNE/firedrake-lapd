@@ -43,22 +43,22 @@ def get_phi_bc_ufl(phi, phi_target, t, cfg):
     return weight * phi + (1 - weight) * phi_target
 
 
-def update_phi_bc_funcs(lowx, highx, lowy, highy, phi, t, cfg):
+def update_phi_bc_funcs(lowx, highx, lowy, highy, phi, grad_phi_x, grad_phi_y, t, cfg):
     delta_x = cfg["mesh"]["dx"]  # / cfg["numerics"]["fe_order"]["phi"]
     # Currently forcing dy=dx...
     delta_y = delta_x
 
-    low_x_target = phi + grad(phi)[0] * delta_x
-    high_x_target = phi - grad(phi)[0] * delta_x
-    low_y_target = phi + grad(phi)[1] * delta_y
-    high_y_target = phi - grad(phi)[1] * delta_y
-    lowx.interpolate(get_phi_bc_ufl(phi, low_x_target, t, cfg))
-    highx.interpolate(get_phi_bc_ufl(phi, high_x_target, t, cfg))
-    lowy.interpolate(get_phi_bc_ufl(phi, low_y_target, t, cfg))
-    highy.interpolate(get_phi_bc_ufl(phi, high_y_target, t, cfg))
+    low_x_target = phi + grad_phi_x * delta_x
+    high_x_target = phi - grad_phi_x * delta_x
+    low_y_target = phi + grad_phi_y * delta_y
+    high_y_target = phi - grad_phi_y * delta_y
+    lowx.set_value(get_phi_bc_ufl(phi, low_x_target, t, cfg))
+    highx.set_value(get_phi_bc_ufl(phi, high_x_target, t, cfg))
+    lowy.set_value(get_phi_bc_ufl(phi, low_y_target, t, cfg))
+    highy.set_value(get_phi_bc_ufl(phi, high_y_target, t, cfg))
 
 
-def gen_phi_bcs(phi_space, phi, t, cfg):
+def gen_phi_bcs(phi_space, phi, grad_phi_x, grad_phi_y, t, cfg):
     lbls = dict(low_x=1, high_x=2, low_y=3, high_y=4)
     t_relax = cfg["time"].get("phi_t_relax")
     if t_relax is None:
@@ -69,7 +69,13 @@ def gen_phi_bcs(phi_space, phi, t, cfg):
         high_x_bc = Function(phi_space, name="high_x")
         low_y_bc = Function(phi_space, name="low_y")
         high_y_bc = Function(phi_space, name="high_y")
-        update_phi_bc_funcs(low_x_bc, high_x_bc, low_y_bc, high_y_bc, phi, t, cfg)
+
+        # delta_x = cfg["mesh"]["dx"]  # / cfg["numerics"]["fe_order"]["phi"]
+        # delta_y = delta_x
+        # low_x_bc = Function(get_phi_bc_ufl(phi, phi + grad_phi_x * delta_x, t, cfg))
+        # high_x_bc = Function(get_phi_bc_ufl(phi, phi - grad_phi_x * delta_x, t, cfg))
+        # low_y_bc = Function(get_phi_bc_ufl(phi, phi + grad_phi_y * delta_y, t, cfg))
+        # high_y_bc = Function(get_phi_bc_ufl(phi, phi - grad_phi_y * delta_y, t, cfg))
         funcs = [low_x_bc, high_x_bc, low_y_bc, high_y_bc]
         bcs = [
             DirichletBC(phi_space, low_x_bc, lbls["low_x"]),
@@ -77,6 +83,14 @@ def gen_phi_bcs(phi_space, phi, t, cfg):
             DirichletBC(phi_space, low_y_bc, lbls["low_y"]),
             DirichletBC(phi_space, high_y_bc, lbls["high_y"]),
         ]
+        update_phi_bc_funcs(
+            *bcs,
+            phi,
+            grad_phi_x,
+            grad_phi_y,
+            t,
+            cfg,
+        )
         return funcs, bcs
 
 
@@ -124,7 +138,13 @@ def rogers_ricci2D():
 
     phi_for_bcs = Function(phi_space, name="phi_for_BCs")
     phi_for_bcs.assign(phi)
-    phi_bc_funcs, phi_bcs = gen_phi_bcs(phi_space, phi_for_bcs, t, cfg)
+    grad_phi_x_for_bcs = Function(phi_space, name="grad_phi_x_for_BCs")
+    grad_phi_x_for_bcs.interpolate(grad(phi_for_bcs)[0])
+    grad_phi_y_for_bcs = Function(phi_space, name="grad_phi_y_for_BCs")
+    grad_phi_y_for_bcs.interpolate(grad(phi_for_bcs)[1])
+    phi_bc_funcs, phi_bcs = gen_phi_bcs(
+        phi_space, phi_for_bcs, grad_phi_x_for_bcs, grad_phi_y_for_bcs, t, cfg
+    )
     phi_solver = phi_solve_setup(phi_space, phi, w, cfg, bcs=phi_bcs)
 
     # Assemble variational problem
@@ -218,7 +238,11 @@ def rogers_ricci2D():
             dt.assign(t_end - float(t))
             PETSc.Sys.Print(f"  Last dt = {dt}")
         phi_for_bcs.assign(phi)
-        update_phi_bc_funcs(*phi_bc_funcs, phi_for_bcs, t, cfg)
+        grad_phi_x_for_bcs.interpolate(grad(phi_for_bcs)[0])
+        grad_phi_y_for_bcs.interpolate(grad(phi_for_bcs)[1])
+        update_phi_bc_funcs(
+            *phi_bcs, phi_for_bcs, grad_phi_x_for_bcs, grad_phi_y_for_bcs, t, cfg
+        )
         phi_solver.solve()
 
         # Write fields on output steps
