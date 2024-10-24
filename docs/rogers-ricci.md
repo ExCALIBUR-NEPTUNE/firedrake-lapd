@@ -79,13 +79,13 @@ Normalisations follow those in Rogers & Ricci, that is:
 | Charge                | $e$           |
 | Electric potential    | $e/T_0$       |
 | Energy                | $T_0$         |
-| Mass<sup>*</sup>      | $m_i$         |
+| Mass<sup>*</sup>      | $1600 m_i$    |
 | Number densities      | $n_0$         |
 | Perpendicular lengths | $\rho_{s0}$   |
 | Parallel lengths      | $R$           |
 | Time                  | $R/c_{S0}$    |
 
-<sup>*</sup> Not stated in the paper; but inferred from other normalisation factors.
+<sup>*</sup> Not stated in the paper; derived from other normalisation factors.
 
 The normalised forms of the equations are:
 

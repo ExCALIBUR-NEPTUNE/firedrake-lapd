@@ -64,8 +64,8 @@ def _normalise(cfg):
         (norm["phi"] / constants["e"])
         * norm["time"]
         * norm["time"]
-        / norm["Lpar"]
-        / norm["Lpar"]
+        / norm["Ltrans"]
+        / norm["Ltrans"]
         * norm["charge"]
     )
     cfg["norm_factors"] = norm
