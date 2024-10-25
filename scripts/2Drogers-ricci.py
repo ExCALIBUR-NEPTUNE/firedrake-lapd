@@ -1,5 +1,6 @@
 from firedrake import (
     Constant,
+    DirichletBC,
     dx,
     exp,
     Function,
@@ -33,6 +34,12 @@ def exp_T_term(T, phi, cfg, eps=1e-2):
     e = Constant(cfg["normalised"]["e"])
     Lambda = Constant(cfg["physical"]["Lambda"])
     return exp(Lambda - e * phi / sqrt(T * T + eps * eps))
+
+
+def phi_bcs2D(phi_space, cfg):
+    # Set fixed boundary value; defaults to zero
+    fixed_bdy_val = cfg["numerics"].get("phi_boundary_value", 0.0)
+    return DirichletBC(phi_space, fixed_bdy_val, cfg["mesh"]["transverse_bdy_lbls"])
 
 
 def rogers_ricci2D():
@@ -72,7 +79,7 @@ def rogers_ricci2D():
     n_src = rr_src_term(n_space, x, y, "n", cfg)
     T_src = rr_src_term(T_space, x, y, "T", cfg)
 
-    phi_solver = phi_solve_setup(phi_space, phi, w, cfg)
+    phi_solver = phi_solve_setup(phi_space, phi, w, cfg, bcs=phi_bcs2D(phi_space, cfg))
 
     # Assemble variational problem
     n_test, w_test, T_test = TestFunctions(combined_space)

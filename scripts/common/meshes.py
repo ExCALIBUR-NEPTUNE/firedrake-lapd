@@ -6,45 +6,45 @@ from firedrake import PETSc
 from firedrake.cython import dmcommon
 
 
-def set_up_mesh(opts, name="no_name_set"):
+def set_up_mesh(cfg, name="no_name_set"):
     try:
-        mesh_opts = opts["mesh"]
-        mesh_type = mesh_opts["type"]
+        mesh_cfg = cfg["mesh"]
+        mesh_type = mesh_cfg["type"]
         if mesh_type == "rectangle":
             mesh = RectangleMesh(
-                mesh_opts["nx"],
-                mesh_opts["ny"],
-                mesh_opts["xmin"] + mesh_opts["Lx"],
-                mesh_opts["ymin"] + mesh_opts["Ly"],
-                originX=mesh_opts["xmin"],
-                originY=mesh_opts["ymin"],
+                mesh_cfg["nx"],
+                mesh_cfg["ny"],
+                mesh_cfg["xmin"] + mesh_cfg["Lx"],
+                mesh_cfg["ymin"] + mesh_cfg["Ly"],
+                originX=mesh_cfg["xmin"],
+                originY=mesh_cfg["ymin"],
                 quadrilateral=True,
                 name=name,
             )
         elif mesh_type == "circle":
-            mesh = Mesh(os.path.join(opts["root_dir"], "meshes/test_circle.msh"))
-            mesh.coordinates.dat.data[:, 0] -= opts["mesh"]["Lx"] / 2
-            mesh.coordinates.dat.data[:, 1] -= opts["mesh"]["Ly"] / 2
+            mesh = Mesh(os.path.join(cfg["root_dir"], "meshes/test_circle.msh"))
+            mesh.coordinates.dat.data[:, 0] -= cfg["mesh"]["Lx"] / 2
+            mesh.coordinates.dat.data[:, 1] -= cfg["mesh"]["Ly"] / 2
         elif mesh_type == "cuboid":
             mesh = BoxMesh(
-                mesh_opts["nx"],
-                mesh_opts["ny"],
-                mesh_opts["nz"],
-                mesh_opts["Lx"],
-                mesh_opts["Ly"],
-                mesh_opts["Lz"],
-                lower=(mesh_opts["xmin"], mesh_opts["ymin"], mesh_opts["zmin"]),
-                hexahedral=mesh_opts["use_hex"],
+                mesh_cfg["nx"],
+                mesh_cfg["ny"],
+                mesh_cfg["nz"],
+                mesh_cfg["Lx"],
+                mesh_cfg["Ly"],
+                mesh_cfg["Lz"],
+                lower=(mesh_cfg["xmin"], mesh_cfg["ymin"], mesh_cfg["zmin"]),
+                hexahedral=mesh_cfg["use_hex"],
             )
         elif mesh_type == "cylinder":
-            ref_level = mesh_opts["ref_level"]
+            ref_level = mesh_cfg["ref_level"]
             # Store num cells in transverse slice
-            mesh_opts["ncells_tranverse"] = 2 ** (2 * ref_level + 3)
+            mesh_cfg["ncells_tranverse"] = 2 ** (2 * ref_level + 3)
             mesh = CylinderMesh(
-                mesh_opts["radius"],
-                mesh_opts["nz"],
-                mesh_opts["Lz"],
-                longitudinal_axis=mesh_opts["longitudinal_axis"],
+                mesh_cfg["radius"],
+                mesh_cfg["nz"],
+                mesh_cfg["Lz"],
+                longitudinal_axis=mesh_cfg["longitudinal_axis"],
                 refinement_level=ref_level,
             )
         else:
@@ -53,6 +53,30 @@ def set_up_mesh(opts, name="no_name_set"):
         PETSc.Sys.Print("Unset parameter encountered in set_up_mesh()")
         raise
 
+    transverse_bdy_lbls = ["on_boundary"]
+    parallel_bdy_lbls = []
+
+    if mesh_type == "cylinder":
+        parallel_bdy_lbls = ["top", "bottom"]
+        transverse_bdy_lbls = ["on_boundary"]
+    elif mesh_type == "cuboid":
+        for iax, axis in enumerate(["x", "y", "z"]):
+            for iside, side in enumerate("low", "high"):
+                mesh_cfg[f"{side}{axis}"] = 2 * iax + iside
+        parallel_bdy_lbls = [mesh_cfg["lowz"], mesh_cfg["highz"]]
+        transverse_bdy_lbls = [
+            mesh_cfg["lowx"],
+            mesh_cfg["highx"],
+            mesh_cfg["lowy"],
+            mesh_cfg["highy"],
+        ]
+
+    all_bdy_lbls = list(transverse_bdy_lbls)
+    all_bdy_lbls.extend(parallel_bdy_lbls)
+
+    mesh_cfg["all_bdy_lbl"] = all_bdy_lbls
+    mesh_cfg["transverse_bdy_lbls"] = transverse_bdy_lbls
+    mesh_cfg["parallel_bdy_lbls"] = parallel_bdy_lbls
     return mesh
 
 

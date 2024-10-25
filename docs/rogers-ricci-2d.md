@@ -54,15 +54,38 @@ Derived values
 | B           | $\Omega_{ci} m_i q_E$ | 40 mT                               |                                                   |
 | $c_{s0}$    | $\sqrt{T_0/m_i}$      | 1.2e4 ms<sup>-1</sup>               |                                                   |
 | $\rho_{s0}$ | $c_{s0}/\Omega{ci}$   | 1.2e-2 m                            | Paper has 1.4e-2 m ... implies $m_i\sim 3 m_p$ !? |
-| $S_{0n}$    | 0.03 $n_0 c_{s0}/R$   | 4.8e22 m<sup>-3</sup>s<sup>-1</sup> |                                                   |
+| $S_{0n}$    | 0.03 $n_0 c_{s0} / R$ | 4.8e22 m<sup>-3</sup>s<sup>-1</sup> |                                                   |
 | $S_{0T}$    | 0.03 $T_0 c_{s0} / R$ | 4318.4 Ks<sup>-1</sup>              |                                                   |
 | $\sigma$    | $1.5 R/L_z$           | 1/24                                |                                                   |
+| $L_s$       | $0.5\rho_{s0}$        | 6e-3 m                              |                                                   |
+| $r_s$       | $20\rho_{s0}$         | 0.24 m                              | Approx radius of the LAPD plasma chamber          |
 
 ### Other implementation details
 
-#### Boundary conditions
-Homogeneous Dirichlet for the potential on all boundaries; all other BCs are homogeneous Neumann.
+#### Initial conditions
 
+The default initial conditions are
+
+| Field    | Default ICs (uniform)                          |
+| -------- | ---------------------------------------------- |
+| n        | $2\times10^{14} m^{-3}$ ($10^{-4}$ normalised) |
+| T        | $6\times10^{-4}$ eV ($10^{-4}$ normalised)     |
+| $\omega$ | 0                                              |
+
+N.B. Setting `start_from_steady_state: True` in the `model` section of the config file will use conditions defined in the `rr_steady_state` function; see the [source code](https://github.com/ExCALIBUR-NEPTUNE/firedrake-lapd/blob/568a31372ecbcd63a7a202b53889e785d8e97ccb/scripts/common/rr.py#L224-L252) for details.
+
+#### Boundary conditions
+
+Dirichlet for the potential on all boundaries; (homogeneous) Neumann for all other fields.
+
+| Field    | BCs              |
+| -------- | ---------------- |
+| n        | Neumann          |
+| T        | Neumann          |
+| $\omega$ | Neumann          |
+| $\phi$   | $\phi_{\rm bdy}$ |
+
+$\phi_{\rm bdy}$ is set to 0.03 by default. This value was chosen to keep the value of $\phi$ relatively flat outside the central source region and avoid boundary layers forming in $\omega$ and $\phi$. 
 
 #### Domain and mesh
 
@@ -122,15 +145,17 @@ Note that, since the density only features in equation 4, it is effectively deco
 ### CG version
 
 <figure>
-  <img src="media/rr2D_64x64_CG.gif" width="600">
-  <figcaption>Temperature (normalised units) in the CG implementation, run on a 64x64 quad mesh for 5 ms.</figcaption>
+  <img src="media/rr2D_64x64_CG_temperature.gif" align="left" width="50%" >
+  <img src="media/rr2D_64x64_CG_vorticity.gif" align="left" width="50%" >
+  <figcaption>Temperature (left) and vorticity (right) in normalised units, run with the CG implementation on a 64x64 quad mesh for 5 ms (120 normalised time units).</figcaption>
 </figure>
 
 ### DG version
 
 <figure>
-  <img src="media/rr2D_64x64_DG.gif" width="600">
-  <figcaption>Temperature (normalised units) in the DG implementation, run on a 64x64 quad mesh for 5 ms.</figcaption>
+  <img src="media/rr2D_64x64_DG_temperature.gif" align="left" width="50%" >
+  <img src="media/rr2D_64x64_DG_vorticity.gif" align="left" width="50%" >
+  <figcaption>Temperature (left) and vorticity (right) in normalised units, run with the DG implementation on a 64x64 quad mesh for 5 ms (120 normalised time units).</figcaption>
 </figure>
 
 ## Weak Forms

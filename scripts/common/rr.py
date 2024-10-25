@@ -137,13 +137,9 @@ def phi_solve_setup(phi_space, phi, w, cfg, bcs=None):
     )
     Rphi = Constant(rhs_fac) * w * phi_test * dx
 
-    # D0 on all boundaries
-    if cfg["mesh"]["type"] in ["circle", "cuboid", "rectangle"]:
-        bdy_lbl_all = "on_boundary"
-    elif cfg["mesh"]["type"] == "cylinder":
-        bdy_lbl_all = ("on_boundary", "top", "bottom")
     if bcs is None:
-        bcs = DirichletBC(phi_space, 0, bdy_lbl_all)
+        # D0 on all boundaries
+        bcs = DirichletBC(phi_space, 0, cfg["mesh"]["all_bdy_lbl"])
 
     phi_problem = LinearVariationalProblem(Lphi, Rphi, phi, bcs=bcs)
     solver_params = {

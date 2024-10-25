@@ -11,6 +11,7 @@ model:
   Ls_boost: 2.0
 numerics:
   discretisation: DG
+  phi_boundary_value: 0.03
 physical:
   n_0: 2.0e+18
   nu: 0.03
