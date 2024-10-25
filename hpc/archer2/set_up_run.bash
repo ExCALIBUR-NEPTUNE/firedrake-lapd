@@ -12,6 +12,7 @@ ${repo_root}/utils/set_up_run.bash $*
 run_name="$1"
 run_dir="${repo_root}/runs/${run_name}"
 archer_dir="${repo_root}/hpc/archer2"
+script_name="${2%.py}.py"
 
 # Copy Slurm script, setting account, image directory
 sed "${archer_dir}/sub_fd-singularity.slurm" -e "s|\[SET_ACCOUNT_HERE\]|$ACCOUNT|" -e "s|\[SET_IMAGE_DIR_HERE\]|${repo_root}/hpc/archer2/singularity|"  -e "s|\[SET_SCRIPT_NAME_HERE\]|${script_name}|"> "${run_dir}/sub_fd-singularity.slurm"

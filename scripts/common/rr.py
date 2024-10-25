@@ -1,6 +1,44 @@
 from .io import read_yaml_config, set_default_param
 import math
-from firedrake import Constant, cosh, Function, PETSc, sqrt, tanh
+from firedrake import (
+    as_vector,
+    Constant,
+    cosh,
+    DirichletBC,
+    dot,
+    dS,
+    dx,
+    FacetNormal,
+    Function,
+    grad,
+    LinearVariationalProblem,
+    LinearVariationalSolver,
+    PETSc,
+    sqrt,
+    tanh,
+    TestFunction,
+    TrialFunction,
+)
+from irksome import GaussLegendre, TimeStepper
+
+
+def nl_solve_setup(F, t, dt, state, cfg, bcs=None, **solver_param_overrides):
+    butcher_tableau = GaussLegendre(cfg["time"]["order"])
+    solver_params = {
+        "snes_max_it": 100,
+        "snes_linesearch_type": "l2",
+        "ksp_type": "preonly",
+        "pc_type": "lu",
+        "mat_type": "aij",
+        "pc_factor_mat_solver_type": "mumps",
+    }
+    if cfg["debug"]:
+        solver_params["ksp_monitor"] = None
+        solver_params["snes_monitor"] = None
+    solver_params.update(solver_param_overrides)
+    return TimeStepper(
+        F, butcher_tableau, t, dt, state, bcs=bcs, solver_parameters=solver_params
+    )
 
 
 def _normalise(cfg):
@@ -35,7 +73,7 @@ def _normalise(cfg):
     # Space norm
     mesh["Lz"] = mesh["Lz"] * norm["Lpar"]
     mesh["zmin"] = mesh["zmin"] * norm["Lpar"]
-    for key in ["Lx", "Ly", "radius", "xmin", "ymin"]:
+    for key in ["dx", "Lx", "Ly", "radius", "xmin", "ymin"]:
         if key in mesh:
             mesh[key] = mesh[key] * norm["Ltrans"]
 
@@ -74,13 +112,42 @@ def _normalise(cfg):
             * norm["charge"]
             / norm["mass"]
         )
-        cfg["normalised"]["u_ref"] = 1.0 * cfg["normalised"]["c_s0"]
 
 
 def overrule_param_val(d, k, new_val, condition, msg):
     if condition:
         PETSc.Sys.Print(msg)
         d[k] = new_val
+
+
+def phi_solve_setup(phi_space, phi, w, cfg, bcs=None):
+    phi_test = TestFunction(phi_space)
+    phi_tri = TrialFunction(phi_space)
+
+    rhs_fac = (
+        cfg["normalised"]["e"]
+        * cfg["normalised"]["B"] ** 2
+        / cfg["normalised"]["m_i"]
+        / cfg["normalised"]["n_char"]
+    )
+    # N.B. Integration by parts gives you a -ve sign on the LHS
+    Lphi = (
+        -(grad(phi_tri)[0] * grad(phi_test)[0] + grad(phi_tri)[1] * grad(phi_test)[1])
+        * dx
+    )
+    Rphi = Constant(rhs_fac) * w * phi_test * dx
+
+    if bcs is None:
+        # D0 on all boundaries
+        bcs = DirichletBC(phi_space, 0, cfg["mesh"]["all_bdy_lbl"])
+
+    phi_problem = LinearVariationalProblem(Lphi, Rphi, phi, bcs=bcs)
+    solver_params = {
+        "ksp_type": "preonly",
+        "pc_type": "lu",
+        "pc_factor_mat_solver_type": "mumps",
+    }
+    return LinearVariationalSolver(phi_problem, solver_parameters=solver_params)
 
 
 def _process_params(cfg):
@@ -108,6 +175,7 @@ def _process_params(cfg):
     set_default_param(model_cfg, "is_isothermal", False)
     set_default_param(model_cfg, "coulomb_fac_enabled", False)
     set_default_param(model_cfg, "Ls_boost", 1.0)
+    set_default_param(model_cfg, "elec_ion_mass_ratio", 400.0)
     set_default_param(model_cfg, "n_init", 1e18)
     set_default_param(model_cfg, "start_from_steady_state", True)
     set_default_param(model_cfg, "T_init", 6.0)
@@ -136,7 +204,9 @@ def _process_params(cfg):
     set_default_param(phys_cfg, "Lz", 18.0)
     set_default_param(phys_cfg, "m_i", 4 * constants["m_p"])
     # Unless defaults are overridden, use mass-boosted electrons as per paper; m_e = m_i/400 = m_p/100
-    set_default_param(phys_cfg, "m_e", phys_cfg["m_i"] / 400.0)
+    set_default_param(
+        phys_cfg, "m_e", phys_cfg["m_i"] / model_cfg["elec_ion_mass_ratio"]
+    )
     set_default_param(phys_cfg, "n_char", 2e18)
     set_default_param(phys_cfg, "n_0", 2e18)
     set_default_param(phys_cfg, "nu", 0.03)
@@ -186,6 +256,7 @@ def _process_params(cfg):
     mesh_cfg["Lz"] = phys_cfg["Lz"]
     mesh_cfg["zmin"] = -phys_cfg["Lz"] / 2
     if mesh_cfg["type"] in ["circle", "cuboid", "rectangle"]:
+        mesh_cfg["dx"] = phys_cfg["L"] / mesh_cfg["nx"]
         mesh_cfg["Lx"] = phys_cfg["L"]
         mesh_cfg["Ly"] = phys_cfg["L"]
         mesh_cfg["xmin"] = -phys_cfg["L"] / 2
@@ -221,6 +292,45 @@ def read_rr_config(fname):
     )
 
 
+def rr_DG_upwind_term(tri, test, phi, mesh, cfg):
+    vExB = rr_ExB_vel(phi, cfg)
+    norms = FacetNormal(mesh)
+    vExB_n = 0.5 * (dot(vExB, norms) + abs(dot(vExB, norms)))
+    return (
+        vExB_n("-") * (tri("-") - tri("+")) * test("-") * dS
+        + vExB_n("+") * (tri("+") - tri("-")) * test("+") * dS
+    )
+
+
+def rr_ExB_vel(phi, cfg):
+    one_over_B = Constant(1 / cfg["normalised"]["B"])
+    return as_vector([-one_over_B * grad(phi)[1], one_over_B * grad(phi)[0]])
+
+
+def rr_src_term(fspace, x, y, var, cfg):
+    """
+    Assemble a source term function on space [fspace] for variable [var],
+    fetching corresponding scaling params from [cfg] and evaluating a
+    tanh function over mesh coords [x],[y]
+    """
+    func = Function(fspace, name=f"{var}_src")
+    func.interpolate(rr_src_ufl(x, y, var, cfg))
+    return func
+
+
+def rr_src_ufl(x, y, var, cfg):
+    """
+    Get UFL representing a source term for variable [var],
+    fetching corresponding scaling params from [cfg] and evaluating a
+    tanh function over mesh coords [x],[y]
+    """
+    r = sqrt(x * x + y * y)
+    fac = cfg["normalised"][f"S0{var}"]
+    Ls = cfg["normalised"]["Ls"]
+    rs = cfg["normalised"]["rs"]
+    return fac * (1 - tanh((r - rs) / Ls)) / 2
+
+
 def rr_steady_state(x, y, cfg):
     cfg_norm = cfg["normalised"]
 
@@ -252,25 +362,15 @@ def rr_steady_state(x, y, cfg):
     return n_init, T_init, w_init
 
 
-def rr_src_ufl(x, y, var, cfg):
-    """
-    Get UFL representing a source term for variable [var],
-    fetching corresponding scaling params from [cfg] and evaluating a
-    tanh function over mesh coords [x],[y]
-    """
-    r = sqrt(x * x + y * y)
-    fac = cfg["normalised"][f"S0{var}"]
-    Ls = cfg["normalised"]["Ls"]
-    rs = cfg["normalised"]["rs"]
-    return fac * (1 - tanh((r - rs) / Ls)) / 2
-
-
-def rr_src_term(fspace, x, y, var, cfg):
-    """
-    Assemble a source term function on space [fspace] for variable [var],
-    fetching corresponding scaling params from [cfg] and evaluating a
-    tanh function over mesh coords [x],[y]
-    """
-    func = Function(fspace, name=f"{var}_src")
-    func.interpolate(rr_src_ufl(x, y, var, cfg))
-    return func
+def rr_SU_term(tri, test, phi, h, cfg, vel_par=None, eps=1e-2):
+    vel = rr_ExB_vel(phi, cfg)
+    if vel_par is not None:
+        vel = as_vector([vel[0], vel[1], vel_par])
+    return (
+        0.5
+        * h
+        * (dot(vel, grad(tri)))
+        * dot(vel, grad(test))
+        * (1 / sqrt((vel[0]) ** 2 + (vel[1]) ** 2 + eps * eps))
+        * dx
+    )

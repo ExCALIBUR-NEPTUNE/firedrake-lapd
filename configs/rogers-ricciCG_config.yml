@@ -1,0 +1,26 @@
+mesh:
+  type: cuboid
+  nx: 32
+  ny: 32
+  nz: 16
+model:
+  coulomb_fac_enabled: True
+  elec_ion_mass_ratio: 400
+  is_isothermal: False
+  n_init: 2.0e+12
+  S0n_fac: 0.03
+  S0T_fac: 0.03
+  T_init: 6.0e-6
+numerics:
+  do_streamline_upwinding: True
+physical:
+  Lz: 18.0
+  n_0: 2.0e+18
+  nu: 0.03
+  omega_ci: 9.6e+5
+  R: 0.5
+  T_e0: 6
+time:
+  num_steps: 10000
+  output_freq: 1
+  t_end: 1000.0e-6

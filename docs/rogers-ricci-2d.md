@@ -40,7 +40,7 @@ where $r = \sqrt{x^2 + y^2}$
 
 | Parameter     | Value               | Comment                                                                                                         |
 | ------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- |
-| $T_{e0}$      | 6 eV                |                                                                                                                 |
+| $T_0$         | 6 eV                |                                                                                                                 |
 | $L_z$         | 18 m                |                                                                                                                 |
 | $n_0$         | 2e18 m<sup>-3</sup> |                                                                                                                 |
 | $m_i$         | 6.67e-27 kg         | Inferred from the value of $c_{s0}$ quoted in the paper. Value is $\sim 4 m_p$, consistent with a Helium plasma |
@@ -49,16 +49,16 @@ where $r = \sqrt{x^2 + y^2}$
 | R             | 0.5 m               | Approx radius of the plasma column                                                                              |
 
 Derived values
-| Parameter   | Calculated as            | Value                               | Comment                                           |
-| ----------- | ------------------------ | ----------------------------------- | ------------------------------------------------- |
-| B           | $\Omega_{ci} m_i q_E$    | 40 mT                               |                                                   |
-| $c_{s0}$    | $\sqrt{T_{e0}/m_i}$      | 1.2e4 ms<sup>-1</sup>               |                                                   |
-| $\rho_{s0}$ | $c_{s0}/\Omega{ci}$      | 1.2e-2 m                            | Paper has 1.4e-2 m ... implies $m_i\sim 3 m_p$ !? |
-| $S_{0n}$    | 0.03 $n_0 c_{s0}/R$      | 4.8e22 m<sup>-3</sup>s<sup>-1</sup> |                                                   |
-| $S_{0T}$    | 0.03 $T_{e0} c_{s0} / R$ | 4318.4 Ks<sup>-1</sup>              |                                                   |
-| $\sigma$    | $1.5 R/L_z$              | 1/24                                |                                                   |
-| $L_s$       | $0.5\rho_{s0}$           | 6e-3 m                              |                                                   |
-| $r_s$       | $20\rho_{s0}$            | 0.24 m                              | Approx radius of the LAPD plasma chamber          |
+| Parameter   | Calculated as         | Value                               | Comment                                           |
+| ----------- | --------------------- | ----------------------------------- | ------------------------------------------------- |
+| B           | $\Omega_{ci} m_i q_E$ | 40 mT                               |                                                   |
+| $c_{s0}$    | $\sqrt{T_0/m_i}$      | 1.2e4 ms<sup>-1</sup>               |                                                   |
+| $\rho_{s0}$ | $c_{s0}/\Omega{ci}$   | 1.2e-2 m                            | Paper has 1.4e-2 m ... implies $m_i\sim 3 m_p$ !? |
+| $S_{0n}$    | 0.03 $n_0 c_{s0} / R$ | 4.8e22 m<sup>-3</sup>s<sup>-1</sup> |                                                   |
+| $S_{0T}$    | 0.03 $T_0 c_{s0} / R$ | 4318.4 Ks<sup>-1</sup>              |                                                   |
+| $\sigma$    | $1.5 R/L_z$           | 1/24                                |                                                   |
+| $L_s$       | $0.5\rho_{s0}$        | 6e-3 m                              |                                                   |
+| $r_s$       | $20\rho_{s0}$         | 0.24 m                              | Approx radius of the LAPD plasma chamber          |
 
 ### Other implementation details
 
@@ -89,7 +89,7 @@ $\phi_{\rm bdy}$ is set to 0.03 by default. This value was chosen to keep the va
 
 #### Domain and mesh
 
-The mesh is a square with the origin at the centre and size $\sqrt{T_{e0}/m_i}/\Omega{ci} = 100\rho_{s0} = 1.2$ m.
+The mesh is a square with the origin at the centre and size $\sqrt{T_0/m_i}/\Omega{ci} = 100\rho_{s0} = 1.2$ m.
 
 By default, there are 64x64 quadrilateral (square) elements, giving sizes of 1.875 cm = 25/16 $\rho_{s0}$
 
@@ -102,8 +102,8 @@ Normalisations follow those in Rogers & Ricci, that is:
 |                       | Normalised to   |
 | --------------------- | --------------- |
 | Charge                | $e$             |
-| Electric potential    | $e/T_{e0}$      |
-| Energy                | $T_{e0}$        |
+| Electric potential    | $e/T_0$         |
+| Energy                | $T_0$           |
 | Number densities      | $n_0$           |
 | Perpendicular lengths | $100 \rho_{s0}$ |
 | Parallel lengths      | $R$             |

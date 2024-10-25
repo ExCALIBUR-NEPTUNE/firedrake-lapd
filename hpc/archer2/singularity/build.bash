@@ -1,4 +1,5 @@
 #!/bin/bash
+this_dir=$( cd -- "$(realpath $( dirname -- "${BASH_SOURCE[0]}" ))" &> /dev/null && pwd )
 
 check_ret() {
     ret_code="$?"
@@ -27,9 +28,10 @@ if ! [[ "$*" == *"--no-cache"* ]]; then
 fi
 
 # Build the docker images
-build_cmd="docker compose build $*"
+compose_file="${this_dir}/docker-compose.yml"
+build_cmd="docker compose -f ${compose_file} build $*"
 eval "$build_cmd"
-check_ret "docker compose build ($build_cmd)"
+check_ret "compose build with ($build_cmd)"
 
 test_cmd="docker compose up --abort-on-container-failure firedrake"
 eval "$test_cmd"
