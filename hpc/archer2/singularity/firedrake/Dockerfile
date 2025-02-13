@@ -27,7 +27,8 @@ RUN bash -c 'python3 firedrake-install \
     --mpicc=$MPICH_DIR/mpicc \
     --mpicxx=$MPICH_DIR/mpicxx \
     --mpif90=$MPICH_DIR/mpif90 \ 
-    --mpiexec=$MPICH_DIR/mpiexec \
+    --mpiexec=$MPICH_DIR/mpiexec \ 
+    --mpihome=$MPICH_DIR \
     --package-branch firedrake ${FIREDRAKE_BRANCH} \
     --pip-install pyyaml'
 

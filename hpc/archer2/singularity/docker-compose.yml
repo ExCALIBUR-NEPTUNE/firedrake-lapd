@@ -18,7 +18,7 @@ services:
     container_name: firedrake
     build:
       args:
-        FIREDRAKE_BRANCH: "master"
+        FIREDRAKE_BRANCH: "16df27cdd4d416ae047d89432a8f0e2557542acc"
       context: firedrake
     depends_on: ["petsc_env"]
     entrypoint: "./run_tests.sh"
