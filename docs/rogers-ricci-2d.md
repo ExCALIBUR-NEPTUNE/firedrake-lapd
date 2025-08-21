@@ -160,14 +160,52 @@ Note that, since the density only features in equation 4, it is effectively deco
 
 ## Weak Forms
 
+
+We discretise Equations 4-7 over a domain $\Omega$ with the option to use either continuous Galerkin (CG) or discontinuous Galerkin (DG) formulations.
+The functions $n$, $T$ and $\omega$, and respective test functions $n_{\rm test}$, $T_{\rm test}$, $\omega_{\rm test}$ live in separate CG/DG function spaces, $V_1$, $V_2$ and $V_3$, which need not be of the same polynomial order.  Note that in both the CG and DG implementations, equation 7 is solved separately, at the beginning of each step, to obtain the potential. The corresponding weak form is:
+
+$$
+\begin{align}
+\int{\left(\nabla \phi_{\rm test} \cdot \nabla \phi\right)}d\vec{x} + \frac{eB^2}{m_i n_{\rm char}}\int\left(\omega \phi_{\rm test}\right)d\vec{x} = 0
+\end{align}
+$$
+
+The CG and DG versions of the script use different stabilisation techniques when solving equations 4-6, and therefore have slightly different weak forms. 
+Note also that the boundary terms in [the table above](rogers-ricci-2d.md#boundary-conditions) are added automatically by Firedrake and aren't included below.
+
 ### CG version
+In practice we look for a solution in the combined function space $V=V_1\times V_2\times V_3$ that satisfies
 
-Equations 4-7 are discretised over a domain $\Omega$ using a continuous Galerkin formulation.
-The functions $n$, $T$ and $\omega$, and respective test functions $v_1$, $v_2$, $v_3$ live in separate CG function spaces ($V_1$ - $V_3$) which need not be of the same polynomial order.
+$$
+\begin{align}
+&\int \left[ \left( \frac{\partial n}{\partial t} - \frac{1}{B}[n,\phi] + \frac{\sigma c_s n \exp{(\Lambda - e \phi / T)}}{R} - n_{s} \right) n_{\rm test}\right]~d{\vec{x}} \\
+&+\frac{h}{2} \int \frac{(\vec{v_d}\cdot\nabla{n})(\vec{v_d}\cdot\nabla{n_{\rm test}})}{|\vec{v_d}|} d{\vec{x}} \\
+&+\int \left[ \left( \frac{\partial T}{\partial t} - \frac{1}{B}[T,\phi] + \frac{2\sigma c_s T [1.71\exp{(\Lambda - e \phi / T)} - 0.71]}{3R} - T_{s}\right) T_{\rm test} \right]~d{\vec{x}} \\
+&+\frac{h}{2} \int \frac{(\vec{v_d}\cdot\nabla{T})(\vec{v_d}\cdot\nabla{T_{\rm test}})}{|\vec{v_d}|} d{\vec{x}} \\
+&+\int \left[ \left( \frac{\partial \omega}{\partial t} - \frac{1}{B}[\omega,\phi] + \frac{\sigma c_s m_i \Omega_{\rm ci}^2}{eR} [ 1 - \exp{(\Lambda - e \phi / T)}] \right) \omega_{\rm test}\right]~d{\vec{x}} \\
+&+\frac{h}{2} \int \frac{(\vec{v_d}\cdot\nabla{\omega})(\vec{v_d}\cdot\nabla{\omega_{\rm test}})}{|\vec{v_d}|} d{\vec{x}} \\
+& = 0
+\end{align}
+$$
 
-The weak form of the equations, below are written using the shorthand $\left< f(n), v_1 \right> \equiv \int_\Omega f(n) v_1 d\mathbf{x}$ to indicate the standard process of multiplying terms by a test function and integrating over the domain. In practice we look for a solution in the combined function space $V=V_1\times V_2\times V_3$ where
+where
 
-ToDo: Add CG weak form.
+- $S_n$ and $S_T$ are source terms defined in the [Equations](rogers-ricci-2d.md#equations) subsection, above
+- $[n,\phi]$, $[T,\phi]$ and $[\omega,\phi]$ are Poisson brackets. Note that, for a constant, z-aligned B field, and scalar field $f$, $[f,\phi] \equiv \nabla\cdot(f\vec{v_d})$
+- the terms on even-numbered lines add "Streamline Upwinding", which help to stabilise the solution
+- The following regularisations are used to further stabilise things:
+  - $\frac{1}{|\vec{v_d}|} \to \frac{1}{\sqrt{|\vec{v_d}|^2 + \epsilon^2}}$
+  - $\frac{1}{T} \to \frac{1}{\sqrt{T^2 + \epsilon^2}}$
+
+and $\epsilon=10^{-6}$ by default. The ExB drift velocity (assuming the $B$ field is constant and in the +ve z direction, orthogonal to the 2D domain) is:
+
+$$
+\vec{v_d} = 
+\begin{pmatrix}
+-\frac{\partial \phi}{\partial y}\\
+\frac{\partial \phi}{\partial x}
+\end{pmatrix}
+$$
 
 ### DG version
 
