@@ -45,7 +45,7 @@ where $r = \sqrt{x^2 + y^2}$
 | $n_0$         | 2e18 m<sup>-3</sup> |                                                                                                                 |
 | $m_i$         | 6.67e-27 kg         | Inferred from the value of $c_{s0}$ quoted in the paper. Value is $\sim 4 m_p$, consistent with a Helium plasma |
 | $\Omega_{ci}$ | $9.6e5$             |                                                                                                                 |
-| $\Lambda$     | 3                   | Couloumb Logarithm                                                                                              |
+| $\Lambda$     | 3                   | Wall potential                                                                                                  |
 | R             | 0.5 m               | Approx radius of the plasma column                                                                              |
 
 Derived values
